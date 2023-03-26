@@ -2,13 +2,36 @@ import { Request, Response } from "express";
 
 import { StatusCodes } from "http-status-codes";
 
+import * as yup from "yup";
+
 interface ICity {
-  nome: string
+  name: string;
+  state: string;
 }
 
-export const create = (req: Request<{}, {}, ICity>, res: Response) => {
+const bodyValidation: yup.Schema<ICity> = yup.object().shape({
+  name: yup.string().required().min(3),
+  state: yup.string().required().min(3),
+});
 
-  return res.send("Create!");
+export const create = async (req: Request<{}, {}, ICity>, res: Response) => {
+  let validateData: ICity | undefined = undefined;
+
+  try {
+    validateData = await bodyValidation.validate(req.body, {
+      abortEarly: false,
+    });
+  } catch (err) {
+    const yupError = err as yup.ValidationError;
+    const errors: Record<string, string> = {};
+
+    yupError.inner.forEach((error) => {
+      if (!error.path) return;
+      errors[error.path] = error.message;
+    });
+
+    return res.status(StatusCodes.BAD_REQUEST).json({ errors });
+  }
 };
 
 export const teste = {};
